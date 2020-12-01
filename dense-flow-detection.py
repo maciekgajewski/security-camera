@@ -14,25 +14,17 @@ CAM=1
 
 cap = cv2.VideoCapture(1)
 
-t0 = time.time()
-frames = 0
-
-gain = cap.get(cv2.CAP_PROP_GAIN)
-print(f'gain={gain}')
-
-
-fps = cap.get(cv2.CAP_PROP_FPS)
-print(f'fps={fps}')
 cap.set(cv2.CAP_PROP_FPS, 10)
 fps = cap.get(cv2.CAP_PROP_FPS)
 print(f'fps={fps}')
 
 
-c1 = None # corners in previous frame
-g1 = None # previous frame
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 logging.info('hello')
+
+frames = [] # frame history
+SMOOTHING = 15 # num frames to calc average over
 
 while True:
 
@@ -46,6 +38,20 @@ while True:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     color = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
 
+    asFloat = np.float32(gray)
+    frames.append(asFloat)
+
+    if len(frames) == SMOOTHING:
+        s = sum(frames)
+        frames.pop(0)
+
+        smooth = s/SMOOTHING
+        smoothAsInt = np.uint8(smooth)
+        cv2.imshow(f'smoothing {SMOOTHING}', smoothAsInt)
+
+    
+    g1 = gray.copy()
+
     # Display
     cv2.imshow('camera', color)
 
@@ -54,22 +60,7 @@ while True:
     key = cv2.waitKey(1)
     if key & 0xFF == ord('q'):
         break
-    elif key & 0xFF == ord(']'):
-        gain = gain * 1.11
-        print(f'gain={gain}')
-        cap.set(cv2.CAP_PROP_GAIN, 0.001)
-    elif key & 0xFF == ord('['):
-        gain = gain * 0.9
-        print(f'gain={gain}')
-        cap.set(cv2.CAP_PROP_GAIN, 0.001)
 
-    frames += 1
-    t1 = time.time()
-    if (t1 - t0) > 1.0 :
-        fps = frames/(t1-t0)
-        #print(f'FPS: {fps}')
-        t0 = t1
-        frames = 1
 
 cap.release()
 cv2.destroyAllWindows()
